@@ -2,3 +2,5 @@
 matplotlib
 torch
 torchvision
+plantcv
+ipython

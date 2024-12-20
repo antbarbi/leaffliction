@@ -54,7 +54,7 @@ def main(image_name: str, visual: bool = False):
     skewer = transforms.RandomAffine(degrees=0, shear=60)
     cropper = transforms.RandomResizedCrop(size=image.size)
     distorter = transforms.RandomPerspective(distortion_scale=0.5, p=1)
-    blurer = transforms.GaussianBlur(kernel_size=5, sigma=2.0)
+    blurer = transforms.GaussianBlur(kernel_size=5, sigma=(0.5, 2.0))
 
     augmented = {
         "Flip": flipper(image),

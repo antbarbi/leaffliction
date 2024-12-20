@@ -2,7 +2,6 @@
 
 import os
 import argparse
-import torch
 from torchvision import transforms
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -33,7 +32,6 @@ def visualizer(augmented: dict) -> None:
         axes[-1, -1].axis('off')
     else:
         fig, axes = plt.subplots(2, num_of_images // 2, figsize=(12, 8))
-    print(2, num_of_images // 2)
 
     for ax, (transf, img) in zip(axes.flatten(), augmented.items()):
         ax.imshow(img)
@@ -70,12 +68,12 @@ def main(image_name: str, visual: bool = False):
     for transf, img in augmented.items():
         name, ext = os.path.splitext(image_name)
         print(f"{name}_{transf}{ext}")
-        image.save()
+        img.save(f"{name}_{transf}{ext}")
 
     augmented["Normal"] = image
     if visual:
         visualizer(augmented)
-    
+
 
 if __name__ == "__main__":
     args = args_parser()

@@ -2,9 +2,10 @@
 
 import os
 import argparse
+import shutil
+import matplotlib.pyplot as plt
 from plantcv import plantcv as pcv
 from plantcv.parallel import WorkflowInputs
-import shutil
 
 
 # # Input/output options
@@ -24,8 +25,8 @@ os.mkdir("./debug_outputs")
 pcv.params.debug = "print"
 pcv.params.debug_outdir = "./debug_outputs"
 pcv.params.dpi = 100
-pcv.params.text_size = 20
-pcv.params.text_thickness = 20
+# pcv.params.text_size = 20
+# pcv.params.text_thickness = 20
 
 
 def args_parser() -> argparse.Namespace:
@@ -57,33 +58,27 @@ def main(src: str, dst: str, mask: bool = False):
     img, path, filename = pcv.readimage(filename=src)
 
     # Visualize colorspaces HSV / LAB
-    colorspace_img = pcv.visualize.colorspaces(rgb_img=img)
+    colorspace_img = pcv.visualize.colorspaces(rgb_img=img, original_img=False)
 
     # Convert the image to grayscale
-    b = pcv.rgb2gray_lab(rgb_img=img, channel="b")
-    
-    # Visualize the distribution of grayscales values
-    hist = pcv.visualize.histogram(img=b)
+    b = pcv.rgb2gray_lab(rgb_img=img, channel="a")
 
-    # Gaussian blur
-    blur_img = pcv.gaussian_blur(img=img, ksize=(5, 5), sigma_x=0)
+    ## Isolating the image from background
+    # Threshold the image
+    b_thresh = pcv.threshold.otsu(gray_img=b, object_type='dark')
+    # Noise reduction
+    b_filt = pcv.median_blur(gray_img=b_thresh, ksize=5)
 
-    # Convert to grayscale
-    gray_img = pcv.rgb2gray_lab(rgb_img=img, channel='l')
-
-    # Apply binary thresholding
-    mask = pcv.threshold.binary(gray_img=gray_img, threshold=120, object_type='light')
-
-    # Define ROI
-    roi, roi_hierarchy = pcv.roi.rectangle(img=img, x=50, y=50, h=200, w=200)
-
-    # Find objects
-    id_objects, obj_hierarchy = pcv.find_objects(img=img, mask=mask)
-
-    # Keep objects within the ROI
-    roi_objects, hierarchy, kept_mask, obj_area = pcv.roi_objects(img=img, roi_contour=roi, roi_hierarchy=roi_hierarchy, object_contour=id_objects, obj_hierarchy=obj_hierarchy, roi_type='partial')
+    ## Morphology Analysis
+    skeleton = pcv.morphology.skeletonize(mask=b_filt)
+    pruned_skel, seg_img, edge_objects = pcv.morphology.prune(skel_img=skeleton, size=50, mask=b_filt)
 
 
+    # Region of interest
+    roi = pcv.roi.from_binary_image(img, b_filt)
+
+    # Connecting or splitting object
+    shape = pcv.analyze.size(img=img, labeled_mask=b_filt, n_labels=1)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ import numpy as np
 # pcv.params.text_size = 20
 # pcv.params.text_thickness = 20
 
+verbose = True
+
 
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -58,7 +60,8 @@ def save_images(**kwargs):
     for name, img in kwargs.items():
         filename = f"{dst}/{og_name}_{name.lower()}.JPG"
         cv2.imwrite(filename, img)
-    print(f"Saved {src} transformations")
+    if verbose:
+        print(f"Saved {src} transformations")
 
 
 def display_images(*args: tuple, **kwargs: dict) -> None:

@@ -1,4 +1,5 @@
 venv
 images
+augmented_directory
 test
 ./debug_outputs/*

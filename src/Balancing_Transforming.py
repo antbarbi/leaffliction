@@ -4,10 +4,12 @@ import os
 import argparse
 import random
 import Augmentation
-
+import Transformation
 
 NUM_OF_AUGMENTATION = 6
 Augmentation.verbose = False
+Transformation.verbose = False
+
 
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -39,6 +41,12 @@ def main(directory: str):
             pathname = os.path.join(path, filename)
             Augmentation.main(pathname)
     print("Datasets have been augmented and balanced.")
+
+    for root, dirs, files in os.walk(directory):
+        for dir in dirs:
+            directory = os.path.join(root, dir)
+            Transformation.main(src=directory, dst=directory)
+    print("Datasets have been transformed.")
 
 
 if __name__ == "__main__":

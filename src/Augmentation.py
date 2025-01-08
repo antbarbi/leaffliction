@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 verbose = True
 
+
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="Data augmentation",

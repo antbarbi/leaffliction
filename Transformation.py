@@ -2,7 +2,6 @@
 
 import os
 import argparse
-import shutil
 import matplotlib.pyplot as plt
 from plantcv import plantcv as pcv
 import cv2
@@ -25,7 +24,8 @@ def args_parser() -> argparse.Namespace:
     )
     parser.add_argument(
         "-src",
-        help="The src can be a folder or an image, behavior differs depending on the type of the src",
+        help="The src can be a folder or an image, \
+            behavior differs depending on the type of the src",
         type=str
     )
     parser.add_argument(
@@ -40,13 +40,25 @@ def args_parser() -> argparse.Namespace:
 
 def roi_image(img, roi):
     new_img = np.copy(img)
-
     contours = roi.contours[0]
-    hierarchy = roi.hierarchy[0]
 
     # Draw all contours in green
     cv2.drawContours(new_img, contours, -1, (0, 255, 0), 2)
     return new_img
+
+
+def save_images(**kwargs):
+    src = kwargs["src"]
+    dst = kwargs["dst"]
+
+    kwargs.pop("src")
+    kwargs.pop("dst")
+
+    og_name = src.split("/")[-1].split(".")[0]
+    for name, img in kwargs.items():
+        filename = f"{dst}/{og_name}_{name.lower()}.JPG"
+        cv2.imwrite(filename, img)
+    print(f"Saved {src} transformations")
 
 
 def display_images(*args: tuple, **kwargs: dict) -> None:
@@ -54,9 +66,9 @@ def display_images(*args: tuple, **kwargs: dict) -> None:
 
     if num_of_images > 1:
         if num_of_images % 2 == 0:
-            fig, axes = plt.subplots(2, num_of_images // 2, figsize=(8,6))
+            fig, axes = plt.subplots(2, num_of_images // 2, figsize=(8, 6))
         else:
-            fig, axes = plt.subplots(2, num_of_images // 2 + 1, figsize=(8,6))
+            fig, axes = plt.subplots(2, num_of_images // 2 + 1, figsize=(8, 6))
         axes = axes.flatten()
     else:
         fig, axes = plt.subplots(1, 1)
@@ -64,7 +76,16 @@ def display_images(*args: tuple, **kwargs: dict) -> None:
 
     for (name, img), axe in zip(kwargs.items(), axes):
         try:
-            if name.lower() in ['roi_image', 'thresholded_image', 'filtered_image', 'grayscale_image']:
+            if name.lower() not in [
+                'roi_image', 'thresholded_image',
+                'filtered_image', 'grayscale_image',
+                'filled_segments'
+            ]:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            if name.lower() in [
+                'roi_image', 'thresholded_image',
+                'filtered_image', 'grayscale_image'
+            ]:
                 axe.imshow(img, cmap='gray')
             else:
                 axe.imshow(img)
@@ -80,26 +101,41 @@ def display_images(*args: tuple, **kwargs: dict) -> None:
     plt.show()
 
 
-def tranformations(filename: str, show: bool=False) -> None:
+def tranformations(filename: str, dst: str = None, show: bool = False) -> None:
     img, path, filename = pcv.readimage(filename=filename)
 
-    # Visualize colorspaces HSV / LAB
-    colorspace_img = pcv.visualize.colorspaces(rgb_img=img, original_img=False)
+    # # Visualize colorspaces HSV / LAB
+    # colorspace_img = pcv.visualize.colorspaces(
+    #   rgb_img=img,
+    #   original_img=False
+    # )
 
     # Convert the image to grayscale
     b = pcv.rgb2gray_lab(rgb_img=img, channel="a")
 
-    ## Isolating the image from background
+    # Isolating the image from background
     # Threshold the image
     b_thresh = pcv.threshold.otsu(gray_img=b, object_type='dark')
     # Noise reduction
     b_filt = pcv.median_blur(gray_img=b_thresh, ksize=5)
 
-    ## Morphology Analysis
+    # Morphology Analysis
     skeleton = pcv.morphology.skeletonize(mask=b_filt)
-    pruned_skel, seg_img, edge_objects = pcv.morphology.prune(skel_img=skeleton, size=50, mask=b_filt)
-    prim_seg, second_seg = pcv.morphology.segment_sort(skel_img=pruned_skel, objects=edge_objects, mask=b_filt)
-    filled_img = pcv.morphology.fill_segments(mask=b_filt, objects=prim_seg, stem_objects=second_seg, label="default")
+    pruned_skel, seg_img, edge_objects = pcv.morphology.prune(
+        skel_img=skeleton,
+        size=50, mask=b_filt
+    )
+    prim_seg, second_seg = pcv.morphology.segment_sort(
+        skel_img=pruned_skel,
+        objects=edge_objects,
+        mask=b_filt
+    )
+    filled_img = pcv.morphology.fill_segments(
+        mask=b_filt,
+        objects=prim_seg,
+        stem_objects=second_seg,
+        label="default"
+    )
 
     # Region of interest
     roi = pcv.roi.from_binary_image(img, b_filt)
@@ -115,11 +151,22 @@ def tranformations(filename: str, show: bool=False) -> None:
             Original_Image=img,
             Grayscale_Image=b,
             Filtered_Image=b_filt,
-            Skeletonized_Image=skeleton,
+            Skeletonized_Image=pruned_skel,
             ROI=roi_img,
             Filled_Segments=filled_img,
-            Masked_Image=filtered_img  # Ensure all passed arguments are images
-            # Removed 'shape' as it is not an image
+            Masked_Image=filtered_img,
+            Shape=shape
+        )
+    else:
+        save_images(
+            src=filename,
+            dst=dst,
+            Grayscale_Image=b,
+            Filtered_Image=b_filt,
+            Skeletonized_Image=skeleton,
+            ROI=roi_img,
+            Masked_Image=filtered_img,
+            Shape=shape
         )
 
 
@@ -128,9 +175,13 @@ def main(src: str, dst: str = None):
         raise FileNotFoundError("File or folder not found or doesn't exists.")
 
     if os.path.isfile(src):
-        tranformations(src, show=True)
+        tranformations(src, dst=dst, show=True)
     if os.path.isdir(src):
-        pass
+        if not dst:
+            raise ValueError("Please specify a destination directory.")
+        for file in os.listdir(src):
+            filename = os.path.join(src, file)
+            tranformations(filename, dst=dst)
 
 
 if __name__ == "__main__":

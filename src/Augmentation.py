@@ -6,6 +6,7 @@ from torchvision import transforms
 from PIL import Image
 import matplotlib.pyplot as plt
 
+verbose = True
 
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -50,7 +51,7 @@ def main(image_name: str, visual: bool = False):
     image = Image.open(image_name)
 
     flipper = transforms.RandomHorizontalFlip(p=1)
-    rotater = transforms.RandomRotation(degrees=90)
+    rotater = transforms.RandomRotation(degrees=(15, 159))
     skewer = transforms.RandomAffine(degrees=0, shear=60)
     cropper = transforms.RandomResizedCrop(size=image.size)
     distorter = transforms.RandomPerspective(distortion_scale=0.5, p=1)
@@ -67,7 +68,8 @@ def main(image_name: str, visual: bool = False):
 
     for transf, img in augmented.items():
         name, ext = os.path.splitext(image_name)
-        print(f"{name}_{transf}{ext}")
+        if verbose:
+            print(f"{name}_{transf}{ext}")
         img.save(f"{name}_{transf}{ext}")
 
     augmented["Normal"] = image

@@ -1,6 +1,7 @@
 import os
 import argparse
 import torch
+import tqdm
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.io import read_image, ImageReadMode

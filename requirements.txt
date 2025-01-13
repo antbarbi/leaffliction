@@ -5,3 +5,4 @@ torchvision
 plantcv
 ipython
 opencv-python
+tqdm

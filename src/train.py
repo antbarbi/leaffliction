@@ -169,6 +169,21 @@ def main(src):
                 print("Early stopping")
                 break
 
+    torch.save(model.state_dict(), "best_model.pth")
+    print("Model weights saved to best_model.pth")
+
+    config = {
+        "input_size": dataset.resize,
+        "num_classes": 8,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.005,
+        "momentum": 0.9
+    }
+    import json
+    with open("config.json", "w") as f:
+        json.dump(config, f)
+    print("Model configuration has been saved to config.json")
+
 
 if __name__ == "__main__":
     args = args_parser()

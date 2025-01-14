@@ -168,7 +168,7 @@ def main(src):
             images = images.to(device)
             labels = labels.to(device)
 
-            with torch.amp.autocast():
+            with torch.amp.autocast("cuda"):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
 
@@ -194,7 +194,7 @@ def main(src):
             for images, labels in test_dataloader:
                 images = images.to(device)
                 labels = labels.to(device)
-                with torch.amp.autocast():
+                with torch.amp.autocast("cuda"):
                     outputs = model(images)
                     loss = criterion(outputs, labels)
                     val_loss += loss.item()

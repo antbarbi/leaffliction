@@ -160,7 +160,7 @@ def main(src):
     optimizer = torch.optim.SGD(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=0.005,
+        weight_decay=0.001,
         momentum=0.9
     )
     scheduler = torch.optim.lr_scheduler.StepLR(

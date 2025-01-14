@@ -9,6 +9,7 @@ from torchvision import transforms
 import torch.nn as nn
 import torch.nn.functional as F
 
+torch.backends.cudnn.benchmark = True
 
 class ImageDataset(Dataset):
     def __init__(self, root_dir: str, resize: tuple = (3, 64, 64)):
@@ -111,8 +112,20 @@ def main(src):
     test_size = dataset_size - train_size
  
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=256, shuffle=True, num_workers=4)
-    test_dataloader = DataLoader(test_dataset, batch_size=256, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=256,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True
+    )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=256,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True
+    )
 
     img: torch.Tensor = dataset[0][0]
 
@@ -122,7 +135,18 @@ def main(src):
 
     # Hyperparams
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.005, momentum=0.9)
+    learning_rate = 0.0005
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=0.005,
+        momentum=0.9
+    )
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer,
+        step_size=30,
+        gamma=0.1
+    )
     total_step = len(train_dataloader)
     patience = 10
     best_loss = float('inf')
@@ -132,6 +156,8 @@ def main(src):
     device = torch.device(0)
     model.to(device)
 
+    scaler = torch.amp.GradScaler()
+
     for epoch in range(epochs):
         loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{epochs}]")
         model.train()
@@ -139,12 +165,14 @@ def main(src):
             images = images.to(device)
             labels = labels.to(device)
 
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+            with torch.amp.autocast():
+                outputs = model(images)
+                loss = criterion(outputs, labels)
 
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             if "val_loss" not in locals():
                 val_loss = 0
@@ -155,15 +183,18 @@ def main(src):
             )
            # Validation
 
+        scheduler.step()
+
         model.eval()
         val_loss = 0
         with torch.no_grad():
             for images, labels in test_dataloader:
                 images = images.to(device)
                 labels = labels.to(device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                val_loss += loss.item()
+                with torch.amp.autocast():
+                    outputs = model(images)
+                    loss = criterion(outputs, labels)
+                    val_loss += loss.item()
         val_loss /= len(test_dataloader)
 
         if val_loss < best_loss:
@@ -181,7 +212,7 @@ def main(src):
     config = {
         "input_size": dataset.resize,
         "num_classes": 8,
-        "learning_rate": 0.0001,
+        "learning_rate": learning_rate,
         "weight_decay": 0.005,
         "momentum": 0.9
     }

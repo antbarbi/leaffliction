@@ -192,13 +192,6 @@ def main(src):
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-
-            if "val_loss" not in locals():
-                val_loss = 0
-            loop.set_postfix(
-                    Loss=loss.item(),
-                    Val_loss=val_loss,
-            )
            # Validation
 
         scheduler.step()
@@ -220,8 +213,15 @@ def main(src):
                     total += labels.size(0)
         val_loss /= len(test_dataloader)
         val_accuracy = correct / total
+        loop.set_postfix(
+            Loss=loss.item(),
+            Val_loss=val_loss,
+            val_accuracy=val_accuracy,
+        )
 
-        early_stopper.early_stop(validation_loss=val_loss)
+        if early_stopper.early_stop(validation_loss=val_loss):
+            print("Early stopped.")
+            break
 
 
 

@@ -180,6 +180,8 @@ def main(src):
     for epoch in range(epochs):
         loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{epochs}]")
         model.train()
+        correct = 0
+        total = 0
         for i, (images, labels) in enumerate(loop):
             images = images.to(device)
             labels = labels.to(device)
@@ -188,11 +190,30 @@ def main(src):
                 outputs = model(images)
                 loss = criterion(outputs, labels)
 
+
             optimizer.zero_grad()
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-           # Validation
+
+            # Calculate training accuracy
+            _, preds = torch.max(outputs, 1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            accuracy = correct / total
+
+            if "val_accuracy" and val_loss not in locals():
+                val_accuracy="Unk."
+                val_loss="Unk."
+
+            loop.set_postfix(
+                Loss=loss.item(),
+                Acc=accuracy,
+                Val_loss=val_loss,
+                val_accuracy=val_accuracy,
+            )
+
+        # Validation
 
         scheduler.step()
 
@@ -213,11 +234,6 @@ def main(src):
                     total += labels.size(0)
         val_loss /= len(test_dataloader)
         val_accuracy = correct / total
-        loop.set_postfix(
-            Loss=loss.item(),
-            Val_loss=val_loss,
-            val_accuracy=val_accuracy,
-        )
 
         if early_stopper.early_stop(validation_loss=val_loss):
             print("Early stopped.")

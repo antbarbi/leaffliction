@@ -111,19 +111,22 @@ def main(src):
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size
  
+    cpu_count = os.cpu_count()
+    num_workers = cpu_count - 1 if cpu_count > 1 else 0
+
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=256,
+        batch_size=1024,
         shuffle=True,
-        num_workers=4,
+        num_workers=num_workers,
         pin_memory=True
     )
     test_dataloader = DataLoader(
         test_dataset,
-        batch_size=256,
+        batch_size=1024,
         shuffle=True,
-        num_workers=4,
+        num_workers=num_workers,
         pin_memory=True
     )
 

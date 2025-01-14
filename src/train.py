@@ -2,7 +2,6 @@ import os
 import argparse
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torch_classes import ImageDataset, CNN, EarlyStopper
 from tqdm import tqdm

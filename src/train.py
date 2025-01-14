@@ -202,7 +202,7 @@ def main(src):
             total += labels.size(0)
             accuracy = correct / total
 
-            if "val_accuracy" and val_loss not in locals():
+            if "val_accuracy" and "val_loss" not in locals():
                 val_accuracy="Unk."
                 val_loss="Unk."
 

@@ -91,6 +91,24 @@ class CNN(nn.Module):
         return out
 
 
+class EarlyStopper:
+    def __init__(self, patience=5, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = float('inf')
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
+
+
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="Data augmentation",
@@ -151,15 +169,13 @@ def main(src):
         gamma=0.1
     )
     total_step = len(train_dataloader)
-    patience = 10
-    best_loss = float('inf')
-    counter = 0
     epochs = 100
+    early_stopper = EarlyStopper()
+    scaler = torch.amp.GradScaler()
 
     device = torch.device(0)
     model.to(device)
 
-    scaler = torch.amp.GradScaler()
 
     for epoch in range(epochs):
         loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{epochs}]")
@@ -182,7 +198,6 @@ def main(src):
             loop.set_postfix(
                     Loss=loss.item(),
                     Val_loss=val_loss,
-                    Best_Loss=best_loss
             )
            # Validation
 
@@ -190,6 +205,8 @@ def main(src):
 
         model.eval()
         val_loss = 0
+        correct = 0
+        total = 0
         with torch.no_grad():
             for images, labels in test_dataloader:
                 images = images.to(device)
@@ -198,16 +215,15 @@ def main(src):
                     outputs = model(images)
                     loss = criterion(outputs, labels)
                     val_loss += loss.item()
+                    _, preds = torch.max(outputs, 1)
+                    correct += (preds == labels).sum().item()
+                    total += labels.size(0)
         val_loss /= len(test_dataloader)
+        val_accuracy = correct / total
 
-        if val_loss < best_loss:
-            best_loss = val_loss
-            counter = 0
-        else:
-            counter += 1
-            if counter >= patience:
-                print("Early stopping")
-                break
+        early_stopper.early_stop(validation_loss=val_loss)
+
+
 
     torch.save(model.state_dict(), "best_model.pth")
     print("Model weights saved to best_model.pth")

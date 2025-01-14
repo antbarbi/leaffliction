@@ -2,6 +2,7 @@ import os
 import argparse
 import torch
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.io import read_image, ImageReadMode
 from torchvision import transforms
@@ -132,8 +133,9 @@ def main(src):
     model.to(device)
 
     for epoch in range(epochs):
+        loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{epochs}]")
         model.train()
-        for i, (images, labels) in enumerate(train_dataloader):
+        for i, (images, labels) in enumerate(loop):
             images = images.to(device)
             labels = labels.to(device)
 
@@ -146,7 +148,11 @@ def main(src):
 
             if "val_loss" not in locals():
                 val_loss = 0
-            print(f"Epoch [{epoch+1}/{epochs}], Step [{i+1}/{total_step}], Loss: {loss.item():.4f}, Val_loss: {val_loss:.4f}, Best-Loss: {best_loss:.4f}")
+            loop.set_postfix(
+                    Loss=loss.item(),
+                    Val_loss=val_loss,
+                    Best_Loss=best_loss
+            )
            # Validation
 
         model.eval()
@@ -159,7 +165,6 @@ def main(src):
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
         val_loss /= len(test_dataloader)
-        print(f"Validation Loss: {val_loss:.4f}")
 
         if val_loss < best_loss:
             best_loss = val_loss

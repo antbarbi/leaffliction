@@ -1,5 +1,6 @@
 import torch
 import argparse
+import matplotlib.pyplot as plt
 from torch_classes import ImageDataset, CNN
 
 
@@ -27,8 +28,6 @@ def args_parser() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
-INDEX = 91000
 
 def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     print("Loading dataset")

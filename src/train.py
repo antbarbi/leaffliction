@@ -145,8 +145,9 @@ def main(src):
         val_loss /= len(test_dataloader)
         val_accuracy = correct / total
 
-        if early_stopper.early_stop(validation_loss=val_loss):
+        if early_stopper.early_stop(validation_loss=val_loss, model=model):
             print("Early stopped.")
+            early_stopper.load_best_weights(model)
             break
 
     torch.save(model.state_dict(), "best_model.pth")

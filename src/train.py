@@ -1,8 +1,9 @@
 import os
 import argparse
 import torch
+import tqdm
+import json
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torch_classes import ImageDataset, CNN, EarlyStopper
 from tqdm import tqdm
@@ -34,7 +35,6 @@ def args_parser() -> argparse.Namespace:
 
 
 def main(src):
-    # 1 - Get data ready (turned into tensors)
     dataset = ImageDataset(src)
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
@@ -121,7 +121,6 @@ def main(src):
             )
 
         # Validation
-
         # scheduler.step()
 
         model.eval()
@@ -146,8 +145,6 @@ def main(src):
             print("Early stopped.")
             break
 
-
-
     torch.save(model.state_dict(), "best_model.pth")
     print("Model weights saved to best_model.pth")
 
@@ -158,7 +155,7 @@ def main(src):
         "weight_decay": 0.005,
         "momentum": 0.9
     }
-    import json
+
     with open("config.json", "w") as f:
         json.dump(config, f)
     print("Model configuration has been saved to config.json")

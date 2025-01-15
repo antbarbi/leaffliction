@@ -34,7 +34,8 @@ def args_parser() -> argparse.Namespace:
 
 
 def main(src):
-    dataset = ImageDataset(src)
+    # 1 - Get data ready (turned into tensors)
+    dataset = ImageDataset(src, resize=(3, 128, 128))
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size
@@ -144,8 +145,9 @@ def main(src):
         val_loss /= len(test_dataloader)
         val_accuracy = correct / total
 
-        if early_stopper.early_stop(validation_loss=val_loss):
+        if early_stopper.early_stop(validation_loss=val_loss, model=model):
             print("Early stopped.")
+            early_stopper.load_best_weights(model)
             break
 
     torch.save(model.state_dict(), "best_model.pth")

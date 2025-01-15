@@ -34,7 +34,7 @@ def args_parser() -> argparse.Namespace:
 
 def main(src):
     # 1 - Get data ready (turned into tensors)
-    dataset = ImageDataset(src)
+    dataset = ImageDataset(src, resize=(3, 128, 128))
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size

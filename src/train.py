@@ -1,93 +1,23 @@
 import os
 import argparse
 import torch
-import tqdm
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.io import read_image, ImageReadMode
-from torchvision import transforms
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
+from torch_classes import ImageDataset, CNN, EarlyStopper
+from tqdm import tqdm
 
 
-class ImageDataset(Dataset):
-    def __init__(self, root_dir: str, resize: tuple = (3, 64, 64)):
-        self.root_dir = root_dir
-        self.image_files = []
-        self.classes = sorted(entry.name for entry in os.scandir(root_dir) if entry.is_dir())
-        self.class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.classes)}
-        self.num_classes = len(self.classes)
-        self.resize = resize
-        
-        for root, dirs, files in os.walk(root_dir):
-            if not dirs:
-                for file in files:
-                    class_name = os.path.basename(root)
-                    self.image_files.append((file, class_name))
+torch.backends.cudnn.benchmark = True
 
-    def __len__(self):
-        return len(self.image_files)
-
-    def __getitem__(self, index):
-        name, label = self.image_files[index]
-        img_path = os.path.join(self.root_dir, label, name)
-        image = read_image(img_path, mode=ImageReadMode.RGB).float() / 255.0
-        image = transforms.Resize(size=(64, 64))(image)
-        label_idx = self.class_to_idx[label]
-        one_hot_label = F.one_hot(torch.tensor(label_idx), num_classes=self.num_classes)
-        return image, label_idx
-
-
-class CNN(nn.Module):
-    def __init__(self, num_of_classes: int, input_size: tuple):
-        super(CNN, self).__init__()
-        self.size = input_size
-
-        self.conv_layer1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        self.conv_layer2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        def _get_flattened_size(self):
-            with torch.no_grad():
-                dummy_input = torch.zeros(1, *self.size)
-                out = self.conv_layer1(dummy_input)
-                out = self.pool1(out)
-                out = self.conv_layer2(out)
-                out = self.pool2(out)
-                flattened_size = out.view(1, -1).size(1)
-            return flattened_size
-
-        self.fc1 = nn.Linear(_get_flattened_size(self), 128)
-        self.relu1 = nn.ReLU()
-        self.fc2 = nn.Linear(128, num_of_classes)
-
-
-    def _get_flattened_size(self, input_size=(3, 64, 64)):
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, *input_size)
-            out = self.conv_layer1(dummy_input)
-            out = self.pool1(out)
-            out = self.conv_layer2(out)
-            out = self.pool2(out)
-            flattened_size = out.view(1, -1).size(1)
-        return flattened_size
-
-
-    def forward(self, x):
-        out = self.conv_layer1(x)
-        out = self.pool1(out)
-
-        out = self.conv_layer2(out)
-        out = self.pool2(out)
-
-        out = out.reshape(out.size(0), -1)
-
-        out = self.fc1(out)
-        out = self.relu1(out)
-        out = self.fc2(out)
-        return out
+# Hyperparams
+CRITERION = nn.CrossEntropyLoss()
+LR = 0.001
+EPOCHS = 100
+NUM_OF_CLASSES = 8
+WEIGHT_DECAY = 0.0005
+MOMENTUM = 0.9
+BATCH_SIZE = 128
 
 
 def args_parser() -> argparse.Namespace:
@@ -110,73 +40,121 @@ def main(src):
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size
  
+    cpu_count = os.cpu_count()
+    num_workers = cpu_count - 1 if cpu_count > 1 else 0
+
     train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=12)
-    test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=True, num_workers=12)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True
+    )
 
     img: torch.Tensor = dataset[0][0]
 
-    model = CNN(8, dataset.resize)
+    model = CNN(NUM_OF_CLASSES, dataset.resize)
     print(f"Flattened size for fc1: {model._get_flattened_size()}")
     # exit()
 
-    # Hyperparams
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.005, momentum=0.9)
-    total_step = len(train_dataloader)
-    patience = 10
-    best_loss = float('inf')
-    counter = 0
 
-    device = torch.device("cpu")
+    optimizer = torch.optim.SGD(
+        model.parameters(),
+        lr=LR,
+        weight_decay=WEIGHT_DECAY,
+        momentum=MOMENTUM
+    )
+    # scheduler = torch.optim.lr_scheduler.StepLR(
+    #     optimizer,
+    #     step_size=30,
+    #     gamma=0.1
+    # )
+    total_step = len(train_dataloader)
+    early_stopper = EarlyStopper()
+    scaler = torch.amp.GradScaler()
+
+    device = torch.device(0)
     model.to(device)
 
-    for epoch in range(1000):
+    for epoch in range(EPOCHS):
+        loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{EPOCHS}]")
         model.train()
-        for i, (images, labels) in enumerate(train_dataloader):
+        correct = 0
+        total = 0
+        for i, (images, labels) in enumerate(loop):
             images = images.to(device)
             labels = labels.to(device)
 
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+            with torch.amp.autocast("cuda"):
+                outputs = model(images)
+                loss = CRITERION(outputs, labels)
+
 
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
-            if "val_loss" not in locals():
-                val_loss = 0
-            print(f"Epoch [{epoch+1}/{1000}], Step [{i+1}/{total_step}], Loss: {loss.item():.4f}, Val_loss: {val_loss:.4f}, Best-Loss: {best_loss:.4f}")
-           # Validation
+            # Calculate training accuracy
+            _, preds = torch.max(outputs, 1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+            accuracy = correct / total
+
+            if "val_accuracy" and "val_loss" not in locals():
+                val_accuracy="Unk."
+                val_loss="Unk."
+
+            loop.set_postfix(
+                Loss=loss.item(),
+                Acc=accuracy,
+                Val_loss=val_loss,
+                val_accuracy=val_accuracy,
+            )
+
+        # Validation
+
+        # scheduler.step()
 
         model.eval()
         val_loss = 0
+        correct = 0
+        total = 0
         with torch.no_grad():
             for images, labels in test_dataloader:
                 images = images.to(device)
                 labels = labels.to(device)
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                val_loss += loss.item()
+                with torch.amp.autocast("cuda"):
+                    outputs = model(images)
+                    loss = CRITERION(outputs, labels)
+                    val_loss += loss.item()
+                    _, preds = torch.max(outputs, 1)
+                    correct += (preds == labels).sum().item()
+                    total += labels.size(0)
         val_loss /= len(test_dataloader)
-        print(f"Validation Loss: {val_loss:.4f}")
+        val_accuracy = correct / total
 
-        if val_loss < best_loss:
-            best_loss = val_loss
-            counter = 0
-        else:
-            counter += 1
-            if counter >= patience:
-                print("Early stopping")
-                break
+        if early_stopper.early_stop(validation_loss=val_loss):
+            print("Early stopped.")
+            break
+
+
 
     torch.save(model.state_dict(), "best_model.pth")
     print("Model weights saved to best_model.pth")
 
     config = {
         "input_size": dataset.resize,
-        "num_classes": 8,
-        "learning_rate": 0.0001,
+        "num_classes": NUM_OF_CLASSES,
+        "learning_rate": LR,
         "weight_decay": 0.005,
         "momentum": 0.9
     }

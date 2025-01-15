@@ -5,14 +5,11 @@ import argparse
 import random
 import Augmentation
 import Transformation
-from concurrent.futures import ProcessPoolExecutor
 
 NUM_OF_AUGMENTATION = 6
 Augmentation.verbose = False
 Transformation.verbose = False
 
-def process_directory(dir_path):
-    Transformation.main(src=dir_path, dst=dir_path)
 
 def args_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -45,10 +42,10 @@ def main(directory: str):
             Augmentation.main(pathname)
     print("Datasets have been augmented and balanced.")
 
-    with ProcessPoolExecutor() as executor:
-        for root, dirs, files in os.walk(directory):
-            dir_paths = [os.path.join(root, dir) for dir in dirs]
-            executor.map(process_directory, dir_paths)
+    for root, dirs, files in os.walk(directory):
+        for dir in dirs:
+            directory = os.path.join(root, dir)
+            Transformation.main(src=directory, dst=directory)
     print("Datasets have been transformed.")
 
 

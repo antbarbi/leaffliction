@@ -3,3 +3,8 @@ images
 augmented_directory
 test
 ./debug_outputs/*
+leaves.zip
+.ipynb_checkpoints
+__pycache__
+*.pth
+*.json

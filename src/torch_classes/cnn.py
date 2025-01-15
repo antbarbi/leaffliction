@@ -7,10 +7,18 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.size = input_size
 
-        self.conv_layer1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3)
+        self.conv_layer1 = nn.Conv2d(
+            in_channels=3,
+            out_channels=32,
+            kernel_size=3
+        )
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv_layer2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
+        self.conv_layer2 = nn.Conv2d(
+            in_channels=32,
+            out_channels=64,
+            kernel_size=3
+        )
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         def _get_flattened_size(self):
@@ -27,7 +35,6 @@ class CNN(nn.Module):
         self.relu1 = nn.ReLU()
         self.fc2 = nn.Linear(128, num_of_classes)
 
-
     def _get_flattened_size(self, input_size=(3, 64, 64)):
         with torch.no_grad():
             dummy_input = torch.zeros(1, *input_size)
@@ -37,7 +44,6 @@ class CNN(nn.Module):
             out = self.pool2(out)
             flattened_size = out.view(1, -1).size(1)
         return flattened_size
-
 
     def forward(self, x):
         out = self.conv_layer1(x)

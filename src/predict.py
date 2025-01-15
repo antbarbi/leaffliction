@@ -1,7 +1,7 @@
 import torch
 import argparse
-import os
 from torch_classes import ImageDataset, CNN
+
 
 NUM_OF_CLASSES = 8
 

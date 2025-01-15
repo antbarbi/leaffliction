@@ -1,7 +1,6 @@
 import os
 import argparse
 import torch
-import tqdm
 import json
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
@@ -39,11 +38,14 @@ def main(src):
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size
- 
+
     cpu_count = os.cpu_count()
     num_workers = cpu_count - 1 if cpu_count > 1 else 0
 
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_dataset, test_dataset = random_split(
+        dataset,
+        [train_size, test_size]
+    )
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE,
@@ -63,8 +65,6 @@ def main(src):
 
     model = CNN(NUM_OF_CLASSES, dataset.resize)
     print(f"Flattened size for fc1: {model._get_flattened_size()}")
-    # exit()
-
 
     optimizer = torch.optim.SGD(
         model.parameters(),
@@ -85,7 +85,11 @@ def main(src):
     model.to(device)
 
     for epoch in range(EPOCHS):
-        loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{EPOCHS}]")
+        loop = tqdm(
+            train_dataloader,
+            total=total_step,
+            desc=f"Epoch [{epoch+1}/{EPOCHS}]"
+        )
         model.train()
         correct = 0
         total = 0
@@ -96,7 +100,6 @@ def main(src):
             with torch.amp.autocast("cuda"):
                 outputs = model(images)
                 loss = CRITERION(outputs, labels)
-
 
             optimizer.zero_grad()
             scaler.scale(loss).backward()
@@ -110,8 +113,8 @@ def main(src):
             accuracy = correct / total
 
             if "val_accuracy" and "val_loss" not in locals():
-                val_accuracy="Unk."
-                val_loss="Unk."
+                val_accuracy = "Unk."
+                val_loss = "Unk."
 
             loop.set_postfix(
                 Loss=loss.item(),

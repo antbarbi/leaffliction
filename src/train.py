@@ -1,6 +1,7 @@
 import os
 import argparse
 import torch
+import json
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from torch_classes import ImageDataset, CNN, EarlyStopper
@@ -38,11 +39,14 @@ def main(src):
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
     test_size = dataset_size - train_size
- 
+
     cpu_count = os.cpu_count()
     num_workers = cpu_count - 1 if cpu_count > 1 else 0
 
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_dataset, test_dataset = random_split(
+        dataset,
+        [train_size, test_size]
+    )
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE,
@@ -62,8 +66,6 @@ def main(src):
 
     model = CNN(NUM_OF_CLASSES, dataset.resize)
     print(f"Flattened size for fc1: {model._get_flattened_size()}")
-    # exit()
-
 
     optimizer = torch.optim.SGD(
         model.parameters(),
@@ -84,7 +86,11 @@ def main(src):
     model.to(device)
 
     for epoch in range(EPOCHS):
-        loop = tqdm(train_dataloader, total=total_step, desc=f"Epoch [{epoch+1}/{EPOCHS}]")
+        loop = tqdm(
+            train_dataloader,
+            total=total_step,
+            desc=f"Epoch [{epoch+1}/{EPOCHS}]"
+        )
         model.train()
         correct = 0
         total = 0
@@ -95,7 +101,6 @@ def main(src):
             with torch.amp.autocast("cuda"):
                 outputs = model(images)
                 loss = CRITERION(outputs, labels)
-
 
             optimizer.zero_grad()
             scaler.scale(loss).backward()
@@ -109,8 +114,8 @@ def main(src):
             accuracy = correct / total
 
             if "val_accuracy" and "val_loss" not in locals():
-                val_accuracy="Unk."
-                val_loss="Unk."
+                val_accuracy = "Unk."
+                val_loss = "Unk."
 
             loop.set_postfix(
                 Loss=loss.item(),
@@ -120,7 +125,6 @@ def main(src):
             )
 
         # Validation
-
         # scheduler.step()
 
         model.eval()
@@ -145,8 +149,6 @@ def main(src):
             print("Early stopped.")
             break
 
-
-
     torch.save(model.state_dict(), "best_model.pth")
     print("Model weights saved to best_model.pth")
 
@@ -157,7 +159,7 @@ def main(src):
         "weight_decay": 0.005,
         "momentum": 0.9
     }
-    import json
+
     with open("config.json", "w") as f:
         json.dump(config, f)
     print("Model configuration has been saved to config.json")

@@ -36,6 +36,8 @@ def args_parser() -> argparse.Namespace:
 def main(src):
     # 1 - Get data ready (turned into tensors)
     torch.manual_seed(42)
+    torch.cuda.manual_seed(42)
+    torch.cuda.manual_seed_all(42)
     generator = torch.Generator().manual_seed(42)
 
     dataset = ImageDataset(src, resize=(3, 128, 128))

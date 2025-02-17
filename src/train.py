@@ -153,7 +153,7 @@ def main(src):
             print("Early stopped.")
             early_stopper.load_best_weights(model)
             print(
-                f"loss: {loss.item()}, acc: {accuracy}, val_loss: {val_loss}, val_acc: {val_accuracy}"
+                f"val_loss: {early_stopper.min_validation_loss}"
             )
             break
 

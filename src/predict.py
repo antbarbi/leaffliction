@@ -1,6 +1,8 @@
 import torch
 import argparse
+from PIL import Image
 from torch_classes import ImageDataset, CNN
+import torchvision.transforms as transforms
 
 
 NUM_OF_CLASSES = 8
@@ -27,8 +29,16 @@ def args_parser() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+def load_image(image_pth: str):
+    image = Image.open(image_pth).convert('RGB')
 
-INDEX = 91000
+    transform = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor()
+    ])
+
+    tensor = transform(image)
+    return tensor
 
 def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     print("Loading dataset")
@@ -39,8 +49,7 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     model.load_state_dict(torch.load(weights_pth, map_location, weights_only=True))
     model.eval()
 
-    img: torch.Tensor = dataset[INDEX][0]
-    print(img.shape, dataset[INDEX][1], dataset.classes[dataset[INDEX][1]])
+    img = load_image(image_pth)
 
     with torch.no_grad():
         input_tensor = img.unsqueeze(0)

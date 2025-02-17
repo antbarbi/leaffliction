@@ -35,6 +35,9 @@ def args_parser() -> argparse.Namespace:
 
 def main(src):
     # 1 - Get data ready (turned into tensors)
+    torch.manual_seed(42)
+    generator = torch.Generator().manual_seed(42)
+
     dataset = ImageDataset(src, resize=(3, 128, 128))
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
@@ -45,7 +48,8 @@ def main(src):
 
     train_dataset, test_dataset = random_split(
         dataset,
-        [train_size, test_size]
+        [train_size, test_size],
+        generator=generator
     )
     train_dataloader = DataLoader(
         train_dataset,

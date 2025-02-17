@@ -32,7 +32,7 @@ INDEX = 91000
 
 def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     print("Loading dataset")
-    dataset = ImageDataset(src)
+    dataset = ImageDataset(src, (3, 128, 128))
     print("Dataset is loaded")
 
     model = CNN(NUM_OF_CLASSES, dataset.resize)

@@ -8,4 +8,4 @@ leaves.zip
 __pycache__
 *.pth
 *.json
-# .ipynb_checkpoints
+.ipynb_checkpoints

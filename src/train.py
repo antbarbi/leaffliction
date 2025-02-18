@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 torch.backends.cudnn.benchmark = True
 
+SEED = 42
+
 # Hyperparams
 CRITERION = nn.CrossEntropyLoss()
 LR = 0.001
@@ -35,6 +37,11 @@ def args_parser() -> argparse.Namespace:
 
 def main(src):
     # 1 - Get data ready (turned into tensors)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    generator = torch.Generator().manual_seed(SEED)
+
     dataset = ImageDataset(src, resize=(3, 128, 128))
     dataset_size = len(dataset)
     train_size = int(0.8 * dataset_size)
@@ -45,7 +52,8 @@ def main(src):
 
     train_dataset, test_dataset = random_split(
         dataset,
-        [train_size, test_size]
+        [train_size, test_size],
+        generator=generator
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -148,6 +156,9 @@ def main(src):
         if early_stopper.early_stop(validation_loss=val_loss, model=model):
             print("Early stopped.")
             early_stopper.load_best_weights(model)
+            print(
+                f"val_loss: {early_stopper.min_validation_loss}"
+            )
             break
 
     torch.save(model.state_dict(), "best_model.pth")

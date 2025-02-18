@@ -1,13 +1,13 @@
 import torch
 import argparse
-import matplotlib.pyplot as plt
+from PIL import Image
 from torch_classes import ImageDataset, CNN
-from torchvision.io import read_image, ImageReadMode
-from torchvision import transforms
-import json
-from collections import OrderedDict
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from Transformation import tranformations
 
-
+mpl.rcParams['toolbar'] = 'None'
 NUM_OF_CLASSES = 8
 
 def args_parser() -> argparse.Namespace:
@@ -35,48 +35,21 @@ def args_parser() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+def load_image(image_pth: str):
+    image = Image.open(image_pth).convert('RGB')
 
-def plotting(img, prediction):
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-    ax[0].imshow(img)
-    ax[0].axis('off')
+    transform = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor()
+    ])
 
-    # ax[1].imshow()
-
-    plt.figtext(0.5, 0.02, f"Class predicted: {prediction}", ha="center", fontsize=14, color="green")
-    plt.suptitle("DL classification", fontsize=16, fontweight="bold")
-
-
-def inspect_model(weights_path: str, config_path: str = "config.json"):
-    """Extract model architecture and input shape information"""
-
-    # Get input shape from config
-    config_path = "./src/weights/shallow/config.json"
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-        input_shape = tuple(config['input_size'])
-
-    # Load state dict and get architecture
-    state_dict = torch.load(weights_path, map_location='cpu', weights_only=True)
-
-    # Extract layer info
-    architecture = OrderedDict()
-    for name, param in state_dict.items():
-        architecture[name] = {
-            'shape': list(param.shape),
-            'parameters': param.numel()
-        }
-
-    return {
-        'input_shape': input_shape,
-        'architecture': architecture,
-        'total_parameters': sum(param.numel() for param in state_dict.values())
-    }
-
+    tensor = transform(image)
+    return tensor
 
 def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
-    dataset = ImageDataset(src)
-    print("Dataset is loaded for class labeling")
+    print("Loading dataset")
+    dataset = ImageDataset(src, (3, 128, 128))
+    print("Dataset is loaded")
 
     res = inspect_model(weights_pth, map_location)
     print(res)
@@ -87,7 +60,7 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     model.load_state_dict(state_dict)
     model.eval()
 
-    img: torch.Tensor = read_image(image_pth, mode=ImageReadMode.RGB).float() / 255.0
+    img = load_image(image_pth)
 
     with torch.no_grad():
         input_tensor = img.unsqueeze(0)
@@ -96,10 +69,39 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
 
     print(f"Prediction: {dataset.classes[prediction]}")
 
-    plotting(img, dataset.classes[prediction])
+    try:
+        jpg = Image.open(image_pth).convert('RGB')
+        jpg2 = tranformations(image_pth)
+    except Exception as e:
+        print("\nError: can't transform base image")
+        exit(-1)
+
+    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+    fig.set_facecolor('black')
+    axs[0].imshow(jpg)
+    axs[0].axis('off')
+    axs[0].set_facecolor('black')
+    axs[0].set_anchor('N')
+
+    axs[1].imshow(jpg2)
+    axs[1].axis('off')
+    axs[1].set_facecolor('black')
+    axs[1].set_anchor('N')
+
+    # Add the classification result as a separate text below the images
+    fig.text(0.5, 0.2, "===      DL classification      ===", color='white',
+             fontsize=14, ha='center', fontweight='bold')
+
+    fig.text(0.40, 0.10, "Class predicted: ", color='white',
+             fontsize=12, ha='center', fontweight='bold')
+
+    fig.text(0.57, 0.10, dataset.classes[prediction], color='limegreen',
+         fontsize=12, ha='center', fontweight='bold')
+
+    plt.subplots_adjust(bottom=0.1)
+    plt.show()
 
 
 if __name__ == "__main__":
     args = args_parser()
-    print(args)
-    main(args.source, args.image, args.weight)
+    main(args.src, args.img, args.weight)

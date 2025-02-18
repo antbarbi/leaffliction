@@ -7,4 +7,5 @@ leaves.zip
 .ipynb_checkpoints
 __pycache__
 ./*.pth
-./*.json
+*.json
+.ipynb_checkpoints

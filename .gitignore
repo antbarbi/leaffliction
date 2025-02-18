@@ -6,6 +6,6 @@ test
 leaves.zip
 .ipynb_checkpoints
 __pycache__
-*.pth
+./*.pth
 *.json
 .ipynb_checkpoints

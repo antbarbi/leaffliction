@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 torch.backends.cudnn.benchmark = True
 
+SEED = 42
+
 # Hyperparams
 CRITERION = nn.CrossEntropyLoss()
 LR = 0.001
@@ -35,10 +37,10 @@ def args_parser() -> argparse.Namespace:
 
 def main(src):
     # 1 - Get data ready (turned into tensors)
-    torch.manual_seed(42)
-    torch.cuda.manual_seed(42)
-    torch.cuda.manual_seed_all(42)
-    generator = torch.Generator().manual_seed(42)
+    torch.manual_seed(SEED)
+    torch.cuda.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+    generator = torch.Generator().manual_seed(SEED)
 
     dataset = ImageDataset(src, resize=(3, 128, 128))
     dataset_size = len(dataset)

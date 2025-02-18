@@ -3,8 +3,10 @@ import argparse
 from PIL import Image
 from torch_classes import ImageDataset, CNN
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
-
+mpl.rcParams['toolbar'] = 'None'
 NUM_OF_CLASSES = 8
 
 def args_parser() -> argparse.Namespace:
@@ -58,8 +60,37 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
 
     print(f"Prediction: {dataset.classes[prediction]}")
 
+    jpg = Image.open(image_pth).convert('RGB')
+    jpg2 = Image.open(
+        image_pth.replace('.', "_masked_image.")
+        ).convert('RGB')
+
+    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+    fig.set_facecolor('black')
+    axs[0].imshow(jpg)
+    axs[0].axis('off')
+    axs[0].set_facecolor('black')
+    axs[0].set_anchor('N')
+    
+    axs[1].imshow(jpg2)
+    axs[1].axis('off')
+    axs[1].set_facecolor('black')
+    axs[1].set_anchor('N')
+
+    # Add the classification result as a separate text below the images
+    fig.text(0.5, 0.2, "===      DL classification      ===", color='white',
+             fontsize=14, ha='center', fontweight='bold')
+
+    fig.text(0.40, 0.10, "Class predicted: ", color='white',
+             fontsize=12, ha='center', fontweight='bold')
+
+    fig.text(0.57, 0.10, dataset.classes[prediction], color='limegreen',
+         fontsize=12, ha='center', fontweight='bold')
+
+    plt.subplots_adjust(bottom=0.1)
+    plt.show()
+
 
 if __name__ == "__main__":
     args = args_parser()
-    print(args)
     main(args.src, args.img, args.weight)

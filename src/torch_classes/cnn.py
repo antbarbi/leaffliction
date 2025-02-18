@@ -62,22 +62,15 @@ class CNN(nn.Module):
 
     def forward(self, x):
         out = self.conv_layer1(x)
-        out = self.pool1(out)
-
         out = self.conv_layer2(out)
-        out = self.pool2(out)
-
         out = self.conv_layer3(out)
-        out = self.pool3(out)
-
         out = self.conv_layer4(out)
-        out = self.pool4(out)
-
-        out = out.reshape(out.size(0), -1)
-
+        out = out.view(out.size(0), -1)
         out = self.fc1(out)
         out = self.relu1(out)
+        out = self.dropout1(out)
         out = self.fc2(out)
         out = self.relu2(out)
+        out = self.dropout2(out)
         out = self.fc3(out)
         return out

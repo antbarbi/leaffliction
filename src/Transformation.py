@@ -172,6 +172,8 @@ def tranformations(filename: str, dst: str = None, show: bool = False) -> None:
             Shape=shape
         )
 
+    return cv2.cvtColor(filtered_img, cv2.COLOR_BGR2RGB)
+
 
 def main(src: str, dst: str = None):
     if not os.path.exists(src):

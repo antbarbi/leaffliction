@@ -5,6 +5,7 @@ from torch_classes import ImageDataset, CNN
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from Transformation import tranformations
 
 mpl.rcParams['toolbar'] = 'None'
 NUM_OF_CLASSES = 8
@@ -61,9 +62,7 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     print(f"Prediction: {dataset.classes[prediction]}")
 
     jpg = Image.open(image_pth).convert('RGB')
-    jpg2 = Image.open(
-        image_pth.replace('.', "_masked_image.")
-        ).convert('RGB')
+    jpg2 = tranformations(image_pth)
 
     fig, axs = plt.subplots(1, 2, figsize=(10, 6))
     fig.set_facecolor('black')

@@ -1,1 +1,0 @@
-{"input_size": [3, 256, 256], "num_classes": 8, "learning_rate": 0.001, "weight_decay": 0.005, "momentum": 0.9}

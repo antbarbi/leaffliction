@@ -24,4 +24,7 @@ The HSV colorspace is often used in image processing because it separates the co
 
 The LAB colorspace is designed to be perceptually uniform, meaning that the same amount of numerical change in these values corresponds to roughly the same amount of visually perceived change. This makes it useful for tasks like color correction and color-based segmentation.
 
-### 
+## Training
+
+### Model
+

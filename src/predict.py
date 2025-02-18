@@ -61,8 +61,12 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
 
     print(f"Prediction: {dataset.classes[prediction]}")
 
-    jpg = Image.open(image_pth).convert('RGB')
-    jpg2 = tranformations(image_pth)
+    try:
+        jpg = Image.open(image_pth).convert('RGB')
+        jpg2 = tranformations(image_pth)
+    except Exception as e:
+        print("\nError: can't transform base image")
+        exit(-1)
 
     fig, axs = plt.subplots(1, 2, figsize=(10, 6))
     fig.set_facecolor('black')
@@ -70,7 +74,7 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     axs[0].axis('off')
     axs[0].set_facecolor('black')
     axs[0].set_anchor('N')
-    
+
     axs[1].imshow(jpg2)
     axs[1].axis('off')
     axs[1].set_facecolor('black')

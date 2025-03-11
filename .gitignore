@@ -10,3 +10,4 @@ __pycache__
 *.json
 .ipynb_checkpoints
 pytorch_env
+best_model.pth

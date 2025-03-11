@@ -95,5 +95,12 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
 
 
 if __name__ == "__main__":
-    args = args_parser()
-    main(args.src, args.img, args.weight)
+    try:
+        args = args_parser()
+        main(args.src, args.img, args.weight)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")

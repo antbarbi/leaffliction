@@ -9,3 +9,4 @@ __pycache__
 ./*.pth
 *.json
 .ipynb_checkpoints
+pytorch_env

@@ -68,5 +68,12 @@ def main(directory_name: str):
 
 
 if __name__ == "__main__":
-    args = args_parser()
-    main(args.directory_name)
+    try:
+        args = args_parser()
+        main(args.directory_name)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+    except KeyboardInterrupt:
+        print("\nProcess interrupted")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")

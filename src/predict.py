@@ -15,21 +15,18 @@ def args_parser() -> argparse.Namespace:
         prog="Data augmentation",
     )
     parser.add_argument(
-        "-s",
-        "--source",
+        "src",
         help="The src has to be a folder \
             behavior differs depending on the type of the src",
         type=str
     )
     parser.add_argument(
-        "-i",
-        "--image",
+        "img",
         help="The image to have to prediction on",
         type=str
     )
     parser.add_argument(
-        "-w",
-        "--weight",
+        "weight",
         help="The image to have to prediction on",
         type=str
     )
@@ -51,13 +48,8 @@ def main(src: str, image_pth: str, weights_pth: str, map_location="cpu"):
     dataset = ImageDataset(src, (3, 128, 128))
     print("Dataset is loaded")
 
-    res = inspect_model(weights_pth, map_location)
-    print(res)
-    exit()
     model = CNN(NUM_OF_CLASSES, dataset.resize)
-    state_dict = torch.load(weights_pth, map_location, weights_only=True)
-    layer = state_dict["conv_layer1.weight"]
-    model.load_state_dict(state_dict)
+    model.load_state_dict(torch.load(weights_pth, map_location, weights_only=True))
     model.eval()
 
     img = load_image(image_pth)

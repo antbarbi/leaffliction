@@ -79,5 +79,12 @@ def main(image_name: str, visual: bool = False):
 
 
 if __name__ == "__main__":
-    args = args_parser()
-    main(args.image_name, args.visual)
+    try:
+        args = args_parser()
+        main(args.image_name, args.visual)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
